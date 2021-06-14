@@ -7,9 +7,8 @@ const TOKEN = process.env.DISCORD_TOKEN;
 
 client.login(TOKEN);
 
-client.on("ready", () => {
+client.on("ready", async () => {
   console.info(`Logged in as ${client.user.tag}!`);
-  //client.channels.get(`853989157213831209`).send(`:(`);
 });
 
 client.on("message", (msg) => {
@@ -20,7 +19,7 @@ client.on("message", (msg) => {
         msg.channel.send("Ayuda");
         break;
       case "setup":
-        handleSetup(msg.channel);
+        handleSetup(msg);
         break;
       case "react":
         msg.channel.send("prueba").then((myMsg) => {
@@ -47,7 +46,7 @@ client.on("message", (msg) => {
  */
   }
 
-  if (msg.content === "ping") {
+  /* if (msg.content === "ping") {
     msg.reply("pong");
     msg.channel.send("pong");
   } else if (msg.content.startsWith("!kick")) {
@@ -57,16 +56,71 @@ client.on("message", (msg) => {
     } else {
       msg.reply("Please tag a valid user!");
     }
+  } */
+});
+
+client.on("messageReactionAdd", (reaction, user) => {
+  const users = reaction.users;
+  if (reaction.message.author == client.user) {
+    if (!users.find((user) => user === client.user)) {
+      reaction.remove(user);
+      return;
+    }
+    const usernames = users.map((user) => user.username);
+    console.log(usernames);
   }
 });
 
+/* 
+
+  TO IMPLEMENT
+
+client.on("messageReactionDelete", (reaction, user) => {
+  const users = reaction.users;
+  const usernames = users.map((user) => user.username);
+
+  console.log(usernames);
+}); */
+
 const deleteMessages = (channel) => {
-  channel.bulkDelete(100).then(() => {
+  channel.bulkDelete(100);
+
+  /* .then(() => {
     channel.send("Deleted 100 messages.").then((msg) => msg.delete(3000));
-  });
+  }); */
 };
 
-const handleSetup = (channel) => {
+const handleSetup = (msg) => {
+  channelRef = msg.member.guild.channels.find("name", "classroom-hands");
+  if (channelRef) {
+    msg.channel.send(
+      `Classroom text channel already exists ${channelRef.toString()}, reseting...`
+    );
+    channelRef.send("**No hay manos levantadas**").then((msg) => {
+      msg.react("✋");
+    });
+    /* channelRef.bulkDelete(100).then(() =>
+    ); */
+  } else {
+    msg.channel.send(`Setting up Classroom text channel...`);
+    msg.guild.createChannel("classroom hands", "text").then((channel) => {
+      channel.send("**No hay manos levantadas**").then((msg) => {
+        msg.react("✋");
+      });
+    });
+  }
+};
+
+async function checkChannelExists(channelID) {
+  const channelRef = await db.collection("channels").doc(channelID);
+  const doc = await channelRef.get();
+  if (doc.exists) {
+    return true;
+  }
+  return false;
+}
+
+const oldhandleSetup = (channel) => {
   channel.send(`Firestore was set up for channel ${channel.toString()}`);
   checkChannelExists(channel.id).then((exists) => {
     if (exists) {
@@ -87,12 +141,3 @@ const handleSetup = (channel) => {
 
   // setTimeout(() => deleteMessages(channel), 5000);
 };
-
-async function checkChannelExists(channelID) {
-  const channelRef = await db.collection("channels").doc(channelID);
-  const doc = await channelRef.get();
-  if (doc.exists) {
-    return true;
-  }
-  return false;
-}
