@@ -27,9 +27,6 @@ client.on("message", (msg) => {
           myMsg.react("✋");
         });
         break;
-      case "firebase":
-        msg.channel.send("La tenes adentro");
-        break;
       case "clear":
         deleteMessages(msg.channel);
         break;
@@ -38,49 +35,43 @@ client.on("message", (msg) => {
           "Ese comando no es valido, usa cl$help para ver la lista de comandos validos."
         );
     }
-
-    /* if (command === "setup") {
-    } else if () {
-
-    }
- */
   }
-
-  /* if (msg.content === "ping") {
-    msg.reply("pong");
-    msg.channel.send("pong");
-  } else if (msg.content.startsWith("!kick")) {
-    if (msg.mentions.users.size) {
-      const taggedUser = msg.mentions.users.first();
-      msg.channel.send(`You wanted to kick: ${taggedUser.username}`);
-    } else {
-      msg.reply("Please tag a valid user!");
-    }
-  } */
 });
 
 client.on("messageReactionAdd", (reaction, user) => {
   const users = reaction.users;
-  if (reaction.message.author == client.user) {
+  if (reaction.message.author == client.user && user !== client.user) {
     if (!users.find((user) => user === client.user)) {
       reaction.remove(user);
       return;
     }
-    const usernames = users.map((user) => user.username);
-    console.log(usernames);
+
+    updateMessage(reaction.message, users);
   }
 });
 
-/* 
-
-  TO IMPLEMENT
-
-client.on("messageReactionDelete", (reaction, user) => {
+client.on("messageReactionRemove", (reaction, user) => {
   const users = reaction.users;
-  const usernames = users.map((user) => user.username);
+  if (reaction.message.author == client.user && user !== client.user) {
+    updateMessage(reaction.message, users);
+  }
+});
 
-  console.log(usernames);
-}); */
+const updateMessage = (msg, users) => {
+  const usernames = users.map((user) => {
+    if (user !== client.user) return user.username;
+  });
+  usernames.shift();
+  let keys = [...Array(usernames.length).keys()].map((x) => x++);
+  let messageUsernames = keys.map((key) =>
+    (key + 1).toString().concat(". ", usernames[key])
+  );
+  msg.edit(
+    usernames.length > 0
+      ? messageUsernames.join("\n")
+      : "**No hay manos levantadas**"
+  );
+};
 
 const deleteMessages = (channel) => {
   channel.bulkDelete(100);
@@ -94,13 +85,12 @@ const handleSetup = (msg) => {
   channelRef = msg.member.guild.channels.find("name", "classroom-hands");
   if (channelRef) {
     msg.channel.send(
-      `Classroom text channel already exists ${channelRef.toString()}, reseting...`
+      `Classroom text channel already exists ${channelRef.toString()}, if you wish to reset the channel use cl$reset`
     );
+
     channelRef.send("**No hay manos levantadas**").then((msg) => {
       msg.react("✋");
     });
-    /* channelRef.bulkDelete(100).then(() =>
-    ); */
   } else {
     msg.channel.send(`Setting up Classroom text channel...`);
     msg.guild.createChannel("classroom hands", "text").then((channel) => {
@@ -120,7 +110,7 @@ async function checkChannelExists(channelID) {
   return false;
 }
 
-const oldhandleSetup = (channel) => {
+/* const oldhandleSetup = (channel) => {
   channel.send(`Firestore was set up for channel ${channel.toString()}`);
   checkChannelExists(channel.id).then((exists) => {
     if (exists) {
@@ -139,5 +129,5 @@ const oldhandleSetup = (channel) => {
     }
   });
 
-  // setTimeout(() => deleteMessages(channel), 5000);
-};
+  setTimeout(() => deleteMessages(channel), 5000);
+};*/
